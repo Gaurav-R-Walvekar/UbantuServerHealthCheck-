@@ -98,6 +98,30 @@ app.get('/serverApp/api/pm2/logs', (req, res) => {
   });
 });
 
+// Clear PM2 error or output log for a specific app
+app.post('/serverApp/api/pm2/clear-log', (req, res) => {
+  const { name, type = 'err' } = req.body;
+  if (!name) return res.status(400).json({ error: 'Missing PM2 app name' });
+
+  pm2.connect(err => {
+    if (err) return res.status(500).json({ error: 'Failed to connect to PM2', details: err.message });
+    pm2.list((err, list) => {
+      pm2.disconnect();
+      if (err) return res.status(500).json({ error: 'Failed to get PM2 list', details: err.message });
+      const app = list.find(a => a.name === name);
+      if (!app) return res.status(404).json({ error: 'App not found' });
+
+      const logPath = type === 'out' ? app.pm2_env.pm_out_log_path : app.pm2_env.pm_err_log_path;
+      if (!logPath) return res.status(404).json({ error: 'Log file not found' });
+
+      fs.truncate(logPath, 0, err => {
+        if (err) return res.status(500).json({ error: 'Failed to clear log file', details: err.message });
+        res.json({ message: 'Log file cleared.' });
+      });
+    });
+  });
+});
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 }); 
