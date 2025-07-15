@@ -32,15 +32,7 @@ app.get('/serverApp/api/status', async (req, res) => {
   }
 });
 
-// Get running processes
-app.get('/serverApp/api/processes', async (req, res) => {
-  try {
-    const processes = await si.processes();
-    res.json(processes.list);
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to get processes', details: err.message });
-  }
-});
+// Removed /serverApp/api/processes endpoint and related code
 
 // Reboot server (POST for safety)
 app.post('/serverApp/api/reboot', (req, res) => {
