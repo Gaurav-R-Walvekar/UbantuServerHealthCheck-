@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const si = require('systeminformation');
 const { exec } = require('child_process');
+const pm2 = require('pm2');
 
 const app = express();
 const PORT = 5051;
@@ -49,6 +50,32 @@ app.post('/serverApp/api/reboot', (req, res) => {
       return res.status(500).json({ error: 'Failed to reboot', details: stderr });
     }
     res.json({ message: 'Rebooting...' });
+  });
+});
+
+// Get PM2 application list and status
+app.get('/serverApp/api/pm2/list', (req, res) => {
+  pm2.connect(err => {
+    if (err) return res.status(500).json({ error: 'Failed to connect to PM2', details: err.message });
+    pm2.list((err, processDescriptionList) => {
+      pm2.disconnect();
+      if (err) return res.status(500).json({ error: 'Failed to get PM2 list', details: err.message });
+      res.json(processDescriptionList);
+    });
+  });
+});
+
+// Restart a PM2 application by name or id
+app.post('/serverApp/api/pm2/restart', (req, res) => {
+  const { name } = req.body;
+  if (!name) return res.status(400).json({ error: 'Missing PM2 app name or id' });
+  pm2.connect(err => {
+    if (err) return res.status(500).json({ error: 'Failed to connect to PM2', details: err.message });
+    pm2.restart(name, (err, proc) => {
+      pm2.disconnect();
+      if (err) return res.status(500).json({ error: 'Failed to restart app', details: err.message });
+      res.json({ message: `Restarted ${name}`, proc });
+    });
   });
 });
 
